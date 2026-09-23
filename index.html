@@ -1,0 +1,598 @@
+{
+  "name": "Умная подставка — расписание",
+  "short_name": "Подставка",
+  "description": "Расписание уроков для умной подставки",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f2f3f7",
+  "theme_color": "#5b5ff0",
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
+const CACHE = 'schedule-v1';
+const ASSETS = ['./index.html', './manifest.json'];
+
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
+});
+
+self.addEventListener('fetch', e => {
+  e.respondWith(
+    caches.match(e.request).then(r => r || fetch(e.request))
+  );
+});
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Подставка">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#5b5ff0">
+<meta name="description" content="Расписание уроков для умной подставки">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+<title>Умная подставка — расписание</title>
+<style>
+:root{
+  --bg:#f2f3f7; --bg-grad:#eef0ff; --card:#ffffff; --text:#1a1c23; --muted:#6b7280;
+  --accent:#5b5ff0; --accent2:#8b5cf6; --accent-hover:#4a4de0; --border:#e6e7ee; --danger:#e0455a;
+  --success:#27ae60; --warning:#f39c12;
+  --shadow:0 1px 3px rgba(20,20,43,.06), 0 8px 24px rgba(20,20,43,.05);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  -webkit-tap-highlight-color:transparent;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#131319; --bg-grad:#181622; --card:#1e1e28; --text:#f0f0f4; --muted:#9a9aa8;
+    --accent:#8b8ffc; --accent2:#a78bfa; --accent-hover:#a0a3ff; --border:#2c2c38; --danger:#f37286;
+    --success:#2ecc71; --warning:#f1c40f;
+    --shadow:0 1px 3px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#131319; --bg-grad:#181622; --card:#1e1e28; --text:#f0f0f4; --muted:#9a9aa8;
+  --accent:#8b8ffc; --accent2:#a78bfa; --accent-hover:#a0a3ff; --border:#2c2c38; --danger:#f37286;
+  --success:#2ecc71; --warning:#f1c40f;
+  --shadow:0 1px 3px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0; color:var(--text);
+  font-family:'Manrope',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  min-height:100%;
+  background:
+    radial-gradient(1200px 500px at 10% -10%, var(--bg-grad), transparent 60%),
+    radial-gradient(1000px 400px at 110% 0%, var(--bg-grad), transparent 55%),
+    var(--bg);
+  background-attachment:fixed;
+  overscroll-behavior-y:none;
+}
+.wrap{max-width:1160px;margin:0 auto;padding:24px 16px 70px;}
+@media (max-width:560px){
+  .wrap{padding:16px 12px 60px;}
+}
+h1{font-size:23px;margin:0 0 4px;font-weight:800;letter-spacing:-.02em;}
+@media (max-width:560px){h1{font-size:20px;}}
+.sub{color:var(--muted);font-size:14px;margin:0 0 4px;}
+@media (max-width:560px){.sub{font-size:13px;}}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;box-shadow:var(--shadow);}
+@media (max-width:560px){.card{padding:18px;border-radius:14px;}}
+.center{max-width:380px;margin:8vh auto 0;}
+.brand{text-align:center;font-size:34px;margin-bottom:6px;}
+input{
+  width:100%;padding:12px 13px;border-radius:10px;border:1px solid var(--border);
+  background:var(--bg);color:var(--text);font-size:16px;margin-bottom:6px;font-family:inherit;
+  transition:border-color .15s;
+}
+input:focus{outline:none;border-color:var(--accent);}
+.field-error{color:var(--danger);font-size:12.5px;min-height:16px;margin-bottom:8px;}
+button{
+  cursor:pointer;font-family:inherit;font-size:14px;border:none;border-radius:10px;
+  padding:10px 16px;transition:.15s;
+  touch-action:manipulation;
+  user-select:none;
+}
+.btn-primary{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;
+  width:100%;font-weight:700;font-size:15px;padding:13px;box-shadow:0 6px 16px rgba(91,95,240,.28);
+}
+.btn-primary:hover{filter:brightness(1.06);transform:translateY(-1px);}
+.btn-primary:active{transform:translateY(0);}
+.btn-secondary{background:transparent;border:1px solid var(--border);color:var(--text);font-weight:600;}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
+.btn-danger{background:transparent;border:1px solid var(--danger);color:var(--danger);font-weight:600;}
+.btn-danger:hover{background:var(--danger);color:#fff;}
+.btn-success{background:linear-gradient(135deg,var(--success),#2ecc71);color:#fff;font-weight:700;}
+.btn-success:hover{filter:brightness(1.06);}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:10px;}
+@media (max-width:560px){.topbar{margin-bottom:14px;}}
+.icon-btn{background:var(--card);border:1px solid var(--border);width:40px;height:40px;border-radius:11px;font-size:17px;display:flex;align-items:center;justify-content:center;padding:0;box-shadow:var(--shadow);}
+.icon-btn:hover{border-color:var(--accent);}
+
+/* === СЕТКА: адаптив под все экраны === */
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+@media (max-width:1024px){.grid{grid-template-columns:repeat(3,1fr);}}
+@media (max-width:760px){.grid{grid-template-columns:repeat(2,1fr);}}
+@media (max-width:480px){.grid{grid-template-columns:1fr;}}
+
+.day-col{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow);position:relative;}
+@media (max-width:560px){.day-col{padding:14px;border-radius:14px;}}
+.day-col.today{border:2px solid var(--accent);}
+.day-col.today::before{
+  content:'Сегодня';position:absolute;top:-10px;left:12px;
+  background:var(--accent);color:#fff;font-size:10px;font-weight:700;
+  padding:3px 8px;border-radius:20px;
+}
+.day-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.day-title{font-weight:800;font-size:15px;display:flex;align-items:center;gap:6px;}
+.count-badge{font-size:11px;color:var(--muted);background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:2px 8px;font-weight:600;}
+.slot-row{display:flex;align-items:center;gap:6px;margin-bottom:7px;}
+.slot-num{width:16px;font-size:11px;color:var(--muted);font-weight:700;flex-shrink:0;}
+select{
+  flex:1;padding:8px 6px;border-radius:8px;border:1px solid var(--border);
+  background:var(--bg);color:var(--text);font-size:13px;font-family:inherit;
+  min-height:36px;
+}
+select:focus{outline:none;border-color:var(--accent);}
+.save-row{display:flex;justify-content:center;margin:28px 0 8px;gap:10px;flex-wrap:wrap;}
+.save-row button{padding:14px 36px;font-size:15px;font-weight:700;}
+@media (max-width:560px){.save-row button{padding:12px 20px;font-size:14px;flex:1;}}
+
+/* === Оверлеи === */
+.overlay{
+  position:fixed;inset:0;background:rgba(10,10,20,.45);display:flex;align-items:center;
+  justify-content:center;padding:16px;z-index:20;backdrop-filter:blur(2px);
+  -webkit-backdrop-filter:blur(2px);
+  overscroll-behavior:contain;
+}
+.hidden{display:none !important;}
+.panel{background:var(--card);border-radius:16px;padding:24px;max-width:400px;width:100%;box-shadow:var(--shadow);max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+@media (max-width:560px){.panel{padding:20px;border-radius:14px;}}
+.panel h2{margin-top:0;font-size:18px;font-weight:800;}
+.panel p{color:var(--muted);font-size:13.5px;margin-top:-6px;}
+.theme-opts{display:flex;gap:8px;margin-bottom:18px;}
+.theme-opts button{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);font-weight:600;}
+.theme-opts button.active{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-color:transparent;}
+.stack > button{width:100%;margin-bottom:10px;}
+.lesson-list{margin:10px 0 0;padding-left:0;list-style:none;font-size:13px;}
+.lesson-list li{margin-bottom:5px;padding:6px 9px;background:var(--bg);border-radius:8px;border:1px solid var(--border);}
+.empty-note{color:var(--muted);font-size:13px;margin:6px 0 0;}
+.day-actions{margin-top:12px;display:flex;flex-direction:column;gap:8px;}
+.day-actions button{width:100%;}
+.ol-clean{padding-left:20px;margin:0;font-size:13.5px;}
+.ol-clean li{margin-bottom:6px;}
+
+/* === Тосты === */
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--text);color:var(--bg);padding:12px 20px;border-radius:12px;
+  font-size:14px;font-weight:600;box-shadow:var(--shadow);z-index:30;
+  animation:slideUp .3s ease;
+  max-width:90vw;
+}
+@keyframes slideUp{from{opacity:0;transform:translate(-50%,20px);}to{opacity:1;transform:translate(-50%,0);}}
+.qr-box{text-align:center;padding:16px;background:var(--bg);border-radius:12px;margin:10px 0;}
+.qr-box img{max-width:200px;width:100%;height:auto;}
+
+/* === Свайп-индикатор для мобильных === */
+.swipe-hint{display:none;text-align:center;color:var(--muted);font-size:12px;margin-top:14px;}
+@media (max-width:760px){.swipe-hint{display:block;}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+const DAYS = [
+  {key:'mon', name:'Понедельник', icon:'📘', jsIdx:1},
+  {key:'tue', name:'Вторник', icon:'📗', jsIdx:2},
+  {key:'wed', name:'Среда', icon:'📙', jsIdx:3},
+  {key:'thu', name:'Четверг', icon:'📕', jsIdx:4},
+  {key:'fri', name:'Пятница', icon:'📓', jsIdx:5},
+];
+const SLOTS = 8;
+const SUBJECTS = ["Русский язык","Литература","Математика","Алгебра","Геометрия",
+  "Английский язык","Немецкий язык","Физика","Химия","Биология","География",
+  "История","Обществознание","Информатика","Физкультура","ОБЖ","Музыка","ИЗО",
+  "Технология","Черчение","Астрономия"];
+const EMPTY = "—";
+const ESP32_URL = "http://192.168.1.100/command";
+
+// Определяем тип устройства
+const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem('scheduleAppState');
+    if(raw) return Object.assign({
+      user:null, theme:'system', view:'auth', schedule:emptySchedule(),
+      openDay:null, booksFor:null
+    }, JSON.parse(raw));
+  }catch(e){}
+  return {
+    user:null, theme:'system', view:'auth', schedule:emptySchedule(),
+    openDay:null, booksFor:null
+  };
+}
+function emptySchedule(){
+  const s = {};
+  DAYS.forEach(d=> s[d.key] = Array(SLOTS).fill(EMPTY));
+  return s;
+}
+let state = loadState();
+function persist(){
+  try{ localStorage.setItem('scheduleAppState', JSON.stringify(state)); }catch(e){}
+}
+function applyTheme(){
+  document.documentElement.setAttribute('data-theme', state.theme === 'system' ? '' : state.theme);
+  // Обновляем цвет статус-бара на мобильных
+  const themeColor = state.theme === 'dark' ? '#131319' : '#5b5ff0';
+  document.querySelector('meta[name="theme-color"]').setAttribute('content', themeColor);
+}
+
+function getTodayKey(){
+  const idx = new Date().getDay();
+  const found = DAYS.find(d => d.jsIdx === idx);
+  return found ? found.key : null;
+}
+
+function toast(text){
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(()=> el.remove(), 2500);
+}
+
+function showConfirm(title, text, onYes){
+  const wrap = document.createElement('div');
+  wrap.className = 'overlay';
+  wrap.innerHTML = `
+    <div class="panel">
+      <h2>${title}</h2>
+      <p>${text}</p>
+      <div class="stack" style="margin-top:16px;">
+        <button class="btn-danger" id="__confirmYes">Да, продолжить</button>
+        <button class="btn-secondary" id="__confirmNo">Отмена</button>
+      </div>
+    </div>`;
+  document.body.appendChild(wrap);
+  wrap.querySelector('#__confirmNo').onclick = ()=> wrap.remove();
+  wrap.onclick = (e)=>{ if(e.target === wrap) wrap.remove(); };
+  wrap.querySelector('#__confirmYes').onclick = ()=>{ wrap.remove(); onYes(); };
+}
+
+function render(){
+  applyTheme();
+  const app = document.getElementById('app');
+  if(state.view === 'auth') app.innerHTML = renderAuth();
+  else if(state.view === 'menu') app.innerHTML = renderMenu();
+  else app.innerHTML = renderSchedule();
+  attachHandlers();
+}
+
+function renderAuth(){
+  return `
+  <div class="center card">
+    <div class="brand">🎒</div>
+    <h1 style="text-align:center;">Умная подставка</h1>
+    <p class="sub" style="text-align:center;margin-bottom:18px;">Войдите, чтобы составить расписание на неделю</p>
+    <input id="authName" placeholder="Ваше имя" value="${state.user||''}" autocomplete="off">
+    <div class="field-error" id="nameError"></div>
+    <input id="authPass" type="password" placeholder="Пароль (любой)">
+    <button class="btn-primary" id="loginBtn" style="margin-top:6px;">Войти →</button>
+    <p class="empty-note" style="text-align:center;margin-top:14px;">Данные хранятся только в этом браузере.</p>
+  </div>`;
+}
+
+function renderMenu(){
+  const todayKey = getTodayKey();
+  const cols = DAYS.map(d=>{
+    const filled = state.schedule[d.key].filter(s=>s!==EMPTY).length;
+    const isToday = d.key === todayKey;
+    return `
+    <div class="day-col ${isToday?'today':''}">
+      <div class="day-head">
+        <div class="day-title">${d.icon} ${d.name}</div>
+        <div class="count-badge">${filled}/${SLOTS}</div>
+      </div>
+      ${Array.from({length:SLOTS}).map((_,i)=>`
+        <div class="slot-row">
+          <span class="slot-num">${i+1}</span>
+          <select data-day="${d.key}" data-slot="${i}">
+            <option ${state.schedule[d.key][i]===EMPTY?'selected':''} value="${EMPTY}">${EMPTY}</option>
+            ${SUBJECTS.map(s=>`<option ${state.schedule[d.key][i]===s?'selected':''} value="${s}">${s}</option>`).join('')}
+          </select>
+        </div>
+      `).join('')}
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="topbar">
+    <div>
+      <h1>Привет, ${state.user} 👋</h1>
+      <p class="sub">Выбери до 8 уроков на каждый день. Пустая ячейка — «${EMPTY}»</p>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="icon-btn" id="qrBtn" title="QR-код">📱</button>
+      <button class="icon-btn" id="settingsBtn" title="Настройки">⚙️</button>
+    </div>
+  </div>
+  <div class="grid">${cols}</div>
+  <div class="save-row">
+    <button class="btn-primary" id="saveBtn">💾 Сохранить расписание</button>
+  </div>
+  ${settingsOverlay('settingsOverlay')}
+  ${qrOverlay('qrOverlay')}`;
+}
+
+function renderSchedule(){
+  const todayKey = getTodayKey();
+  const cols = DAYS.map(d=>{
+    const lessons = state.schedule[d.key].filter(s=>s!==EMPTY);
+    const open = state.openDay === d.key;
+    const isToday = d.key === todayKey;
+    return `
+    <div class="day-col ${isToday?'today':''}">
+      <div class="day-head">
+        <div class="day-title">${d.icon} ${d.name}</div>
+        <div class="count-badge">${lessons.length} ур.</div>
+      </div>
+      ${lessons.length ? `<ol class="ol-clean">${lessons.map(l=>`<li>${l}</li>`).join('')}</ol>` : `<p class="empty-note">Уроков нет</p>`}
+      <div class="day-actions">
+        <button class="btn-secondary" data-toggle-day="${d.key}">${open?'Скрыть учебники':'📚 Выдвинуть учебники'}</button>
+        ${open ? (lessons.length
+          ? `<ul class="lesson-list">${lessons.map(l=>`<li>${l}</li>`).join('')}</ul>
+             <button class="btn-success" data-send-esp="${d.key}">📡 Отправить на подставку</button>`
+          : `<p class="empty-note">Учебники не нужны</p>`) : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="topbar">
+    <div>
+      <h1>Расписание готово ✅</h1>
+      <p class="sub">${state.user}, вот твоя неделя. Жми «Выдвинуть учебники» под нужным днём.</p>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="icon-btn" id="qrBtn2" title="QR-код">📱</button>
+      <button class="icon-btn" id="settingsBtn2" title="Настройки">⚙️</button>
+    </div>
+  </div>
+  <div class="grid">${cols}</div>
+  <p class="swipe-hint">👆 Свайпни карточку дня, чтобы быстро раскрыть учебники</p>
+  <div class="save-row">
+    <button class="btn-secondary" id="editBtn">✏️ Редактировать расписание</button>
+    <button class="btn-secondary" id="exportBtn">📥 Экспорт JSON</button>
+  </div>
+  ${settingsOverlay('settingsOverlay2')}
+  ${qrOverlay('qrOverlay2')}`;
+}
+
+function settingsOverlay(id){
+  return `
+  <div class="overlay hidden" id="${id}">
+    <div class="panel">
+      <h2>Настройки</h2>
+      <p>Тема оформления</p>
+      <div class="theme-opts">
+        <button data-theme-opt="light" class="${state.theme==='light'?'active':''}">☀️ Светлая</button>
+        <button data-theme-opt="dark" class="${state.theme==='dark'?'active':''}">🌙 Тёмная</button>
+        <button data-theme-opt="system" class="${state.theme==='system'?'active':''}">💻 Авто</button>
+      </div>
+      <div class="stack">
+        <button class="btn-secondary" data-notify>🔔 Напоминать вечером</button>
+        <button class="btn-secondary" data-reset>🔁 Заполнить расписание заново</button>
+        <button class="btn-danger" data-logout>🚪 Выйти из аккаунта</button>
+        <button class="btn-secondary" data-close-settings style="margin-bottom:0;">Закрыть</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function qrOverlay(id){
+  return `
+  <div class="overlay hidden" id="${id}">
+    <div class="panel">
+      <h2>📱 Открыть на телефоне</h2>
+      <p>Наведи камеру телефона на QR-код, чтобы открыть расписание.</p>
+      <div class="qr-box">
+        <img id="qrImg" alt="QR-код">
+      </div>
+      <button class="btn-secondary" data-close-qr style="width:100%;">Закрыть</button>
+    </div>
+  </div>`;
+}
+
+function attachHandlers(){
+  if(state.view==='auth'){
+    const doLogin = ()=>{
+      const name = document.getElementById('authName').value.trim();
+      const err = document.getElementById('nameError');
+      if(!name){ err.textContent = 'Введите имя, чтобы продолжить'; return; }
+      err.textContent='';
+      state.user = name;
+      state.view = 'menu';
+      persist(); render();
+    };
+    document.getElementById('loginBtn').onclick = doLogin;
+    document.getElementById('authPass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+    document.getElementById('authName').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('authPass').focus(); });
+  }
+
+  if(state.view==='menu' || state.view==='schedule'){
+    const overlayId = state.view==='menu' ? 'settingsOverlay' : 'settingsOverlay2';
+    const btnId = state.view==='menu' ? 'settingsBtn' : 'settingsBtn2';
+    const ov = document.getElementById(overlayId);
+    document.getElementById(btnId).onclick = ()=> ov.classList.remove('hidden');
+    ov.querySelector('[data-close-settings]').onclick = ()=> ov.classList.add('hidden');
+    ov.onclick = (e)=>{ if(e.target === ov) ov.classList.add('hidden'); };
+    ov.querySelectorAll('[data-theme-opt]').forEach(b=>{
+      b.onclick = ()=>{ state.theme = b.dataset.themeOpt; persist(); render(); };
+    });
+    ov.querySelector('[data-reset]').onclick = ()=>{
+      showConfirm('Очистить расписание?', 'Все выбранные уроки будут удалены.', ()=>{
+        state.schedule = emptySchedule();
+        state.view = 'menu';
+        persist(); render();
+      });
+    };
+    ov.querySelector('[data-logout]').onclick = ()=>{
+      showConfirm('Выйти из аккаунта?', 'Расписание останется сохранённым.', ()=>{
+        state.view = 'auth';
+        persist(); render();
+      });
+    };
+    ov.querySelector('[data-notify]').onclick = async ()=>{
+      if(!('Notification' in window)){ toast('Уведомления не поддерживаются'); return; }
+      const perm = await Notification.requestPermission();
+      if(perm === 'granted'){
+        toast('🔔 Напоминания включены');
+        scheduleReminder();
+      } else {
+        toast('Уведомления запрещены');
+      }
+    };
+
+    const qrBtn = document.getElementById(state.view==='menu'?'qrBtn':'qrBtn2');
+    const qrOv = document.getElementById(state.view==='menu'?'qrOverlay':'qrOverlay2');
+    if(qrBtn && qrOv){
+      qrBtn.onclick = ()=>{
+        qrOv.classList.remove('hidden');
+        const img = qrOv.querySelector('#qrImg');
+        if(!img.src){
+          const url = encodeURIComponent(window.location.href);
+          img.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${url}`;
+        }
+      };
+      qrOv.querySelector('[data-close-qr]').onclick = ()=> qrOv.classList.add('hidden');
+      qrOv.onclick = (e)=>{ if(e.target === qrOv) qrOv.classList.add('hidden'); };
+    }
+  }
+
+  if(state.view==='menu'){
+    document.querySelectorAll('select[data-day]').forEach(sel=>{
+      sel.onchange = ()=>{
+        const day = sel.dataset.day, slot = +sel.dataset.slot;
+        state.schedule[day][slot] = sel.value || EMPTY;
+        persist();
+        const badge = sel.closest('.day-col').querySelector('.count-badge');
+        const filled = state.schedule[day].filter(s=>s!==EMPTY).length;
+        badge.textContent = `${filled}/${SLOTS}`;
+      };
+    });
+    document.getElementById('saveBtn').onclick = ()=>{
+      state.view = 'schedule';
+      state.openDay = null;
+      persist(); render();
+      toast('✅ Расписание сохранено');
+    };
+  }
+
+  if(state.view==='schedule'){
+    document.querySelectorAll('[data-toggle-day]').forEach(b=>{
+      b.onclick = ()=>{
+        const d = b.dataset.toggleDay;
+        state.openDay = state.openDay === d ? null : d;
+        render();
+      };
+    });
+    document.querySelectorAll('[data-send-esp]').forEach(b=>{
+      b.onclick = async ()=>{
+        const day = b.dataset.sendEsp;
+        const lessons = state.schedule[day].filter(s=>s!==EMPTY);
+        b.textContent = '📡 Отправка...';
+        try{
+          await fetch(ESP32_URL, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({day, lessons})
+          });
+          b.textContent = '✅ Отправлено на подставку';
+          toast('📡 Подставка выдвигает учебники');
+        }catch(e){
+          b.textContent = '⚠️ Подставка не в сети (демо)';
+          toast('⚠️ ESP32 не отвечает — проверь Wi-Fi');
+        }
+        setTimeout(()=> render(), 2000);
+      };
+    });
+    document.getElementById('editBtn').onclick = ()=>{ state.view='menu'; persist(); render(); };
+    document.getElementById('exportBtn').onclick = ()=>{
+      const blob = new Blob([JSON.stringify(state.schedule, null, 2)], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `raspisanie_${state.user}.json`;
+      a.click();
+      toast('📥 Файл скачан');
+    };
+
+    // Свайп для мобильных: свайп влево/вправо по карточке дня раскрывает её
+    if(isTouch){
+      document.querySelectorAll('.day-col').forEach(col=>{
+        let startX = 0;
+        col.addEventListener('touchstart', e=>{ startX = e.touches[0].clientX; }, {passive:true});
+        col.addEventListener('touchend', e=>{
+          const dx = e.changedTouches[0].clientX - startX;
+          if(Math.abs(dx) > 60){
+            const btn = col.querySelector('[data-toggle-day]');
+            if(btn) btn.click();
+          }
+        }, {passive:true});
+      });
+    }
+  }
+}
+
+function scheduleReminder(){
+  const now = new Date();
+  const target = new Date();
+  target.setHours(19, 0, 0, 0);
+  if(target <= now) target.setDate(target.getDate() + 1);
+  const delay = target - now;
+  setTimeout(()=>{
+    const todayKey = getTodayKey();
+    if(todayKey){
+      const lessons = state.schedule[todayKey].filter(s=>s!==EMPTY);
+      new Notification('🎒 Не забудь собрать учебники!', {
+        body: `На завтра: ${lessons.join(', ')}`
+      });
+    }
+  }, delay);
+}
+
+// Регистрация service worker (для PWA)
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
+render();
+</script>
+</body>
+</html>
